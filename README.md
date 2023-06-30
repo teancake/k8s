@@ -1,3 +1,8 @@
+# 为什么要用K8S
+目前只有一台物理机，为什么不在本机运行所有软件，而要用K8S呢？
+当需要同时运行数据采集、任务调度(airflow)、数据分析(starrocks)、报表(superset)时，发现这些应用自己带有很多配置和依赖。如果在本地把他们安装在一起，最后会变成一堆大杂烩，安装的过程也很繁琐。
+幸运的是，这些应用基本都提供了helm配置，可以无脑部署在K8S中，并且当K8S使用网桥的时候，跟宿主机是在同一个网络下，也可以方便地访问。
+docker-compose也是一个轻量化的在本地协调多个容器的方式，但我发现提供docker-compose配置的应用相比helm还是少一些。
 # 安装k8s
 可以参考 https://wiki.archlinux.org/title/KVM 来做虚拟机之前的准备，比如一些必须的内核模块的加载。
 
@@ -56,6 +61,11 @@ virt-install  \
     --debug
 ```
 虚拟机启动之后，可以用root密码登录，之后都在root下操作即可
+
+需要注意的是，有的镜像默认磁盘大小比较小，比如centos7的只有8G，很容易磁盘空间不够，可以通过一下方式扩容：
+1. 虚拟机镜像文件扩容`qemu-img resize kube-worker-cen0.qcow2 30G`，扩容前需要虚拟机关掉。
+2. 虚拟机磁盘扩容，需要登录到虚拟机上，可以用lsblk看磁盘空间，使用fdisk把目前的分区删掉，再新建一个分区。`sudo fdisk /dev/vda`，之后d, n, w 就行，这步很危险，确保你知道自己在干啥。
+3. 重启系统，xfs文件系统扩容 `sudo xfs_growfs -d /dev/vda1`
 
 ## 安装K8s
 master节点和worker节点的安装命令完全一致（`root_script.sh`）
