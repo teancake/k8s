@@ -7,7 +7,10 @@ docker-compose也是一个轻量化的在本地协调多个容器的方式，但
 可以参考 https://wiki.archlinux.org/title/KVM 来做虚拟机之前的准备，比如一些必须的内核模块的加载。
 
 ## 设置网桥 
-网桥可以让宿主机和所有的虚拟机在一个网络里，如果不想这样，可以用NAT的方式（`add_bridge.sh`）。
+
+网桥可以让宿主机和所有的虚拟机在一个网络里，如果不想这样，可以用NAT的方式
+
+下面这段代码不再用了，用它装出来的网桥系统重启之后就丢了（`add_bridge.sh`）。 可以用systemd-networkd的配置文件来做一个。
 
 ```bash
 IP_ADDR=192.168.50.200/24
@@ -43,11 +46,12 @@ echo $confirm
 if [[ $confirm != "y" ]]; then echo "stopped."; exit ; fi
 
 echo "copy image file"
-sudo cp CentOS-7-x86_64-GenericCloud-2003.qcow2 $IMAGE_PATH
+sudo mkdir -p /var/kvm
+sudo cp ~/CentOS-7-x86_64-GenericCloud.qcow2 $IMAGE_PATH
 sudo chown libvirt-qemu:libvirt-qemu $IMAGE_PATH
 sudo chmod 660 $IMAGE_PATH
 echo "image file copied, ready to start the vm"
-virt-install  \
+sudo virt-install  \
     --virt-type=kvm  \
     --name $NODE_NAME  \
     --memory 2048  \
@@ -58,8 +62,11 @@ virt-install  \
     --nographics  \
     --network bridge=br-kvm,model=virtio  \
     --console pty,target_type=virtio \
-    --debug
+    --debug 
 ```
+注意virt-install一定要sudo，我也不知道为啥，不用sudo装的虚拟机不会自动启动，autostart不管用。
+
+
 虚拟机启动之后，可以用root密码登录，之后都在root下操作即可
 
 需要注意的是，有的镜像默认磁盘大小比较小，比如centos7的只有8G，很容易磁盘空间不够，可以通过一下方式扩容：
