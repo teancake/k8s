@@ -152,16 +152,13 @@ cat /etc/docker/daemon.json
 ```
 
 ### 启动master节点 
-master节点还需要安装flannel网络插件，如果虚拟机访问不了github，可以先下载下来，再本地安装。
-```bash
-kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-```
-之后
 ```bash
 kubeadm init --image-repository registry.aliyuncs.com/google_containers --pod-network-cidr=10.244.0.0/16
 ```
-启动master节点，
-
+启动master节点，master节点还需要安装flannel网络插件，如果虚拟机访问不了github，可以先下载下来，再本地安装。
+```bash
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+```
 
 之后就可以退出root，用普通用户登录，然后执行
 ```bash
@@ -188,17 +185,13 @@ sudo usermod -aG docker `id -un`
 ```
 
 ### 启动worker节点 
+在k8s的主节点执行下面的命令，可以得到加入worker节点的命令 
+```
+kubeadm token create --print-join-command 
+```
+之后在要加入的worker节点上执行即可，命令大概长下面的样子。
 ```bash
 kubeadm join 192.168.50.246:6443 --token j3hnr7.xx7xthtkdmm2c4it --discovery-token-ca-cert-hash sha256:2833dc1983fecb53f23629ccce63f0cf34591f0ddbc0885a4c8ff216f74d39ed
-```
-token 和hash分别用以下的命令查看，或者直接在master启动的时候打的日志里复制即可。
-
-```bash
-kubeadm token list
-kubeadm token create
-```
-```bash
-openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
 ```
 
 参考 [CentOS7 部署K8S集群

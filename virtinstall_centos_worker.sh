@@ -7,11 +7,12 @@ echo $confirm
 if [[ $confirm != "y" ]]; then echo "stopped."; exit ; fi
 
 echo "copy image file"
-sudo cp CentOS-7-x86_64-GenericCloud-2003.qcow2 $IMAGE_PATH
+sudo mkdir -p /var/kvm
+sudo cp ~/CentOS-7-x86_64-GenericCloud.qcow2 $IMAGE_PATH
 sudo chown libvirt-qemu:libvirt-qemu $IMAGE_PATH
 sudo chmod 660 $IMAGE_PATH
 echo "image file copied, ready to start the vm"
-virt-install  \
+sudo virt-install  \
     --virt-type=kvm  \
     --name $NODE_NAME  \
     --memory 2048  \
