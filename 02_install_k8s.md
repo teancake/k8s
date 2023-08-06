@@ -10,7 +10,7 @@ docker-compose也是一个轻量化的在本地协调多个容器的方式，但
 
 网桥可以让宿主机和所有的虚拟机在一个网络里，如果不想这样，可以用NAT的方式
 
-下面这段代码不再用了，用它装出来的网桥系统重启之后就丢了（`add_bridge.sh`）。 可以用systemd-networkd的配置文件来做一个。
+下面这段代码不再用了，用它装出来的网桥系统重启之后就丢了（`add_bridge.sh`）。 可以用systemd-networkd的配置文件来做一个。 networkd的配置文件在networkd_conf里。
 
 ```bash
 IP_ADDR=192.168.50.200/24
