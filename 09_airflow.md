@@ -50,4 +50,45 @@ uid 如果用默认设置，会是50000，如果不知道为啥一直在用1001�
 必须显式配置
 
 
+## Dockerfile
+如果需要在airflow的worker里安装软件或者python的包，可以自己做个镜像，然后在values.yaml里用自己的镜像即可。 不知道为啥，values.yaml里repo的地址不支持写ip，所以如果想用本地的镜像库的话，估计需要在k8s里搞一下域名解析。图简单可以直接用阿里云的镜像服务，目前是免费的。下面是dockerfile
+```yaml
+FROM apache/airflow:latest-python3.10
+USER root
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+  build-essential gcc wget sshpass
+
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+  tar -xvzf ta-lib-0.4.0-src.tar.gz && \
+  cd ta-lib/ && \
+  ./configure --prefix=/usr && \
+  make && \
+  make install
+
+USER airflow
+COPY requirements.txt /
+RUN pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r /requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
+
+```
+编译镜像的命令
+```bash
+TAG=local_py310_v5
+docker build . -t apache/airflow:$TAG
+docker tag apache/airflow:$TAG registry.cn-beijing.aliyuncs.com/reponame/airflow:$TAG
+docker push registry.cn-beijing.aliyuncs.com/reponame/airflow:$TAG
+```
+
+value.yaml更改
+```yaml
+# Images
+images:
+  airflow:
+    repository: registry.cn-beijing.aliyuncs.com/reponame/airflow
+    tag: local_py310_v5
+    # Specifying digest takes precedence over tag.
+    digest: ~
+    pullPolicy: IfNotPresent
+```
 
