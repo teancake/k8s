@@ -150,6 +150,11 @@ systemctl enable kubelet
 systemctl start kubelet
 hostnamectl set-hostname $NODE_NAME 
 
+# install NTP daemon, so that all nodes have the same time. Weird thing may happen if nodes are out of sync (e.g. airflow tasks stop running if time of workers drift too large.)
+yum install ntp -y
+systemctl start ntpd
+systemctl enable ntpd
+
 echo "check files"
 cat /etc/sysctl.d/k8s.conf
 cat /etc/selinux/config
