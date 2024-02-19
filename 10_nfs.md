@@ -1,3 +1,13 @@
+## 使用NFS作为K8S的动态storageClass存储
+用helm安装nfs-subdir-external-provisioner即可，注意需要修改server, path, storageClass.name等参数，如果需要做为默认存储的话，需要把storageClass.defaultClass设置为true。
+如果nfs的storage一开始没有设置为默认存储，后续想改成默认的，可以用下面的命令，把nfs-storage替换为实际的storageClass就行。
+
+```bash
+kubectl patch storageclass nfs-storage -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+
+
 ## nfs问题排查
 
 当从Starrocks大量读或者写数据时，经常出现starrocks的operator pod挂掉，经排查跟内存和CPU资源无关。最终定位到是starrocks使用的NFS存储的原因。
