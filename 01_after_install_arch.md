@@ -23,8 +23,9 @@ sudo usermod -aG libvirt-qemu $(id -un)
 ```
 
 
-```vim /etc/polkit-1/rules.d/50-libvirt.rules
+```vim /etc/polkit-1/rules.d/50-libvirt.rules```
 
+```
 /* Allow users in mykvm group to manage the libvirt
 daemon without authentication */
 polkit.addRule(function(action, subject) {

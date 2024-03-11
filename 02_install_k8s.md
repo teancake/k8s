@@ -76,7 +76,7 @@ sudo virt-install  \
 
 ## 安装K8s
 master节点和worker节点的安装命令完全一致（`root_script.sh`）
-
+**注意下面的代码在worker节点上执行, sudo virsh 之后，console 到worker虚拟机上运行，一定不要在宿主机上运行。**
 ```bash
 NODE_NAME=kube-worker1
 echo "node host name is " $NODE_NAME
