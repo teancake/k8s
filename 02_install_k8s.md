@@ -78,6 +78,10 @@ sudo virt-install  \
 3. 重启系统，xfs文件系统扩容 `sudo xfs_growfs -d /dev/vda1`
 
 ## 安装K8s
+
+**注意，在2024年7月以后，Centos 7的官方源已停止服务，如果要继续使用centos7的话，需要先修改源为vault的地址，之后再执行下面的脚本。**
+首先使用`cat /etc/centos-release`查看centos的版本，之后可以在清华的源页面找到修改方法。 https://mirrors.tuna.tsinghua.edu.cn/help/centos-vault/ 
+
 master节点和worker节点的安装命令完全一致（`root_script.sh`）
 **注意下面的代码在worker节点上执行, sudo virsh 之后，console 到worker虚拟机上运行，一定不要在宿主机上运行。**
 ```bash
