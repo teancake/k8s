@@ -43,3 +43,14 @@ TCP6SegmentationOffload=false
 这种方式会对已经存在的link文件造成影响，会覆盖大于01的link配置，如果在`/usr/lib/systemd/network`,`/run/systemd/network`,`/usr/local/lib/systemd/network`, `/etc/systemd/network` 有link文件，要格外注意。
 
 重启后，可以通过命令`ethtool --show-features eno1 | grep tcp`查看tso的状态。 也可以通过命令`journalctl -u systemd-networkd --since today` 来查看systemd-networkd的运行日志。
+
+### NFS扩容
+由于一开始没有对磁盘做逻辑卷，导致NFS共享数据所在的盘满了之后无法扩容。
+方案是增加新的磁盘，做成逻辑卷，将原来的数据复制到新的磁盘里即可。这个方案需要停机，防止数据不一致。
+
+有两点一定要注意：
+1. 原来的nfs共享路径不能更改，需要建一个符号链接到新的磁盘路径。这样操作NFS和PV的配置都不需要动，数据复制完成之后所有节点开机即可。原因是K8S的PV建立的时候已经把nfs的共享路径固定下来了。即使改了nfs-subdir-external-provisioner的配置重新部署也不行，已有PV还是不会改。
+2. 复制的时候一定要使用cp -a，它能够保留文件的时间、所有者和组，k8s的应用不一定会用什么user来创建文件，如果文件的所有者被更改了，k8s的应用就没有权限读写了。
+
+
+
