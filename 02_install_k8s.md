@@ -1,11 +1,3 @@
-# 为什么要用K8S
-目前只有一台物理机，为什么不在本机运行所有软件，而要用K8S呢？
-当需要同时运行数据采集、任务调度(airflow)、数据分析(starrocks)、报表(superset)时，发现这些应用自己带有很多配置和依赖。如果在本地把他们安装在一起，最后会变成一堆大杂烩，安装的过程也很繁琐。
-幸运的是，这些应用基本都提供了helm配置，可以无脑部署在K8S中，并且当K8S使用网桥的时候，跟宿主机是在同一个网络下，也可以方便地访问。
-docker-compose也是一个轻量化的在本地协调多个容器的方式，但我发现提供docker-compose配置的应用相比helm还是少一些。
-
-现在已经由1台物理机扩展到4台物理机了，原来安装的所有应用都无感地调度在各个节点上。在k8s的管理下，集群的力量一点点显现出来了。
-
 # 安装k8s
 可以参考 https://wiki.archlinux.org/title/KVM 来做虚拟机之前的准备，比如一些必须的内核模块的加载。
 
@@ -30,6 +22,43 @@ sudo ip address del $IP_ADDR dev $ETH_DEV
 系统重启之后网桥需要重建。 
 
 ## kvm 虚拟机
+### ubuntu cloud image
+比如22.04的地址是 https://cloud-images.ubuntu.com/jammy/current/
+
+```bash
+trap "echo interrupted, script exit; exit" INT
+NODE_NAME=kube-worker-lindor
+IMAGE_PATH=/var/kvm/$NODE_NAME.img
+echo "create kvm domain "$NODE_NAME
+read -p "is this what you want? [Ny]" confirm
+echo $confirm
+if [[ $confirm != "y" ]]; then echo "stopped."; exit ; fi
+
+echo "copy image file"
+sudo mkdir -p /var/kvm
+sudo cp ~/jammy-server-cloudimg-amd64-disk-kvm.img $IMAGE_PATH
+sudo chown libvirt-qemu:libvirt-qemu $IMAGE_PATH
+sudo chmod 660 $IMAGE_PATH
+echo "image file copied, ready to start the vm"
+sudo virt-install  \
+    --virt-type=kvm  \
+    --name $NODE_NAME  \
+    --memory 30000  \
+    --vcpus=10,maxvcpus=10  \
+    --osinfo generic \
+    --disk path=$IMAGE_PATH \
+    --import \
+    --nographics  \
+    --network bridge=br-kvm,model=virtio  \
+    --console pty,target_type=virtio \
+    --debug
+
+sudo virsh stop $NODE_NAME && while [ "$(sudo virsh domstate $NODE_NAME)" != "shut off" ]; do echo "wait domain shutdown" sleep 5; done && echo "Domain has shut down." && qemu-img resize $IMAGE_PATH 350G && sudo virsh setmaxmem $NODE_NAME 36G
+sudo virsh start $NODE_NAME && sudo virsh setmem $NODE_NAME 36G
+sudo virsh autostart $NODE_NAME
+```
+
+### centos7
 可以直接用现成的cloudimage，比如centos 7的地址是
 https://cloud.centos.org/centos/7/images/
 
@@ -78,7 +107,42 @@ sudo virt-install  \
 3. 重启系统，xfs文件系统扩容 `sudo xfs_growfs -d /dev/vda1`
 
 ## 安装K8s
+### ubuntu cloud image
+#### 磁盘空间
+ubuntu cloud image磁盘默认大小只有2G，需要先进行扩容
+```bash
+lsblk
+sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1
+lsblk
+df -h
+```
 
+#### 网络 
+不知道为什么，ubuntu cloud image默认网络没有配置好, sshd服务也是挂的，可以通过以下命令配置
+```bash
+cat <<EOF > /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens2:
+      dhcp4: yes
+EOF
+
+chmod 600 /etc/netplan/01-netcfg.yaml && netplan apply
+
+sudo ssh-keygen -A
+sudo systemctl restart sshd.service
+```
+之后可以通过`ip addr`查看网络状态。如果允许ssh通过密码登录，可以执行
+```bash 
+sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+sudo systemctl restart sshd.service
+```
+
+
+
+### centos 7
 **注意，在2024年7月以后，Centos 7的官方源已停止服务，如果要继续使用centos7的话，需要先修改源为vault的地址，之后再执行下面的脚本。**
 首先使用`cat /etc/centos-release`查看centos的版本，之后可以在清华的源页面找到修改方法。 https://mirrors.tuna.tsinghua.edu.cn/help/centos-vault/ 
 
